@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spotify Song Battle</title>
+  <link rel="stylesheet" href="styles.css"> 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin-top: 50px;
+    }
+    .song {
+      margin: 20px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    button {
+      cursor: pointer;
+      background-color: #007bff; /* Updated to a more neutral color */
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+    }
+    button:hover {
+      background-color: #0056b3; /* Darker shade for hover state */
+    }
+    #leaderboard {
+      width: 100%;
+      max-width: 600px; /* Limit width for large screens */
+      margin-top: 20px;
+    }
+    #leaderboardList {
+      list-style: none;
+      padding: 0;
+    }
+    #leaderboardList li {
+      border-bottom: 1px solid #ddd;
+      padding: 10px;
+    }
+    audio {
+      margin-top: 10px;
+    }
+    /* Songmash label styling */
+    .songmash-header {
+        font-family: 'Poppins', sans-serif; /* Modern, clean font */
+        color: #DC143C; /* Crimson text color for contrast */
+        background-color: #FFFFFF; /* White background for the label */
+        padding: 10px 30px;
+        border-radius: 5px;
+        font-size: 28px; /* Large font size for prominence */
+        text-align: center;
+        width: fit-content;
+        margin: 20px auto; /* Center the label on the page */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+
+
+    /* Enhance the label with a hover effect for interactivity */
+    .songmash-header:hover {
+        background-color: #F8F8F8; /* Slightly off-white background on hover */
+        cursor: pointer; /* Change cursor to indicate interactivity */
+    }
+  </style>
+</head>
+<body>
+  <div class="songmash-header">Songduel</div>
+  <div id="song1" class="song"></div>
+  <div id="song2" class="song"></div>
+  <button onclick="vote(1)">Vote for Song 1</button>
+  <button onclick="vote(2)">Vote for Song 2</button>
+  <button onclick="fetchSongs()">Get new songs</button>
+
+  <div id="leaderboard">
+    <h2>Leaderboard</h2>
+    <ul id="leaderboardList"></ul>
+  </div>
+
+  <script>
+    let currentSongs = []; // Store current songs
+
+    async function fetchLeaderboard() {
+        try {
+            const response = await fetch('/leaderboard');
+            if (!response.ok) throw new Error('Failed to fetch leaderboard');
+            const leaderboard = await response.json();
+
+            const listElement = document.getElementById('leaderboardList');
+            listElement.innerHTML = ''; // Clear existing list
+
+            // Populate leaderboard
+            leaderboard.forEach(entry => {
+                const item = document.createElement('li');
+                item.textContent = `${entry.name} by ${entry.artists} - Rating: ${entry.rating}`;
+                listElement.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error fetching leaderboard:', error);
+        }
+    }
+
+
+    // Improved fetchSongs function with async/await
+    // Modify the fetchSongs function to use DOM manipulation
+    async function fetchSongs(replaceIndex = -1) {
+        console.log('Fetching songs...');
+        try {
+            const response = await fetch('/random-songs');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const songs = await response.json();
+            console.log('Songs fetched:', songs);
+
+            if (songs && songs.length > 0) {
+                currentSongs = songs; // Update your currentSongs state
+
+                // Example for song1
+                const song1Div = document.getElementById('song1');
+                song1Div.textContent = `${songs[0].name} by ${songs[0].artists.map(artist => artist.name).join(", ")}`; // Clear and update text
+                const audio1 = document.createElement('audio');
+                audio1.controls = true;
+                audio1.src = songs[0].preview_url;
+                audio1.preload = "none";
+                // Remove any existing audio element before appending the new one
+                const existingAudio1 = song1Div.querySelector('audio');
+                if (existingAudio1) {
+                    song1Div.removeChild(existingAudio1);
+                }
+                song1Div.appendChild(audio1);
+
+                // Repeat for song2
+                const song2Div = document.getElementById('song2');
+                song2Div.textContent = `${songs[1].name} by ${songs[1].artists.map(artist => artist.name).join(", ")}`; // Clear and update text
+                const audio2 = document.createElement('audio');
+                audio2.controls = true;
+                audio2.src = songs[1].preview_url;
+                audio2.preload = "none";
+                // Remove any existing audio element before appending the new one
+                const existingAudio2 = song2Div.querySelector('audio');
+                if (existingAudio2) {
+                    song2Div.removeChild(existingAudio2);
+                }
+                song2Div.appendChild(audio2);
+            } else {
+                console.error("Songs array is empty or not found");
+            }
+        } catch (err) {
+            console.error("Error fetching songs: ", err);
+        }
+    }
+
+    // Modified vote function
+    function vote(songNumber) {
+      console.log('Voted for song ' + songNumber);
+      const replaceIndex = songNumber === 1 ? 1 : 0; // Determine which song to replace
+      fetchSongs(replaceIndex); // Fetch new song only for the non-voted song
+    }
+
+    // Initial fetch of songs when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+    fetchSongs();
+    fetchLeaderboard();
+    setInterval(fetchLeaderboard, 30000);
+    });
+
+
+  </script>
+</body>
+</html>
+
+
